@@ -52,7 +52,7 @@ with open(os.path.join(root_dir, 'README.md'), 'r') as f:
     long_desc = re.sub(r'(^# mike)\n\n(.+\n)*', r'\1', f.read())
 
 setup(
-    name='mike-multi',
+    name='mike',
     version=version,
 
     description=('Manage multiple versions of your MkDocs-powered ' +
