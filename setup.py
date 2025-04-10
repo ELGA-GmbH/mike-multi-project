@@ -52,7 +52,7 @@ with open(os.path.join(root_dir, 'README.md'), 'r') as f:
     long_desc = re.sub(r'(^# mike)\n\n(.+\n)*', r'\1', f.read())
 
 setup(
-    name='mike',
+    name='mike-multi',
     version=version,
 
     description=('Manage multiple versions of your MkDocs-powered ' +
@@ -60,7 +60,7 @@ setup(
     long_description=long_desc,
     long_description_content_type='text/markdown',
     keywords='mkdocs multiple versions',
-    url='https://github.com/jimporter/mike',
+    url='https://github.com/ELGA-GmbH/mike-multi-project',
 
     author='Jim Porter',
     author_email='itsjimporter@gmail.com',
