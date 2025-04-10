@@ -26,18 +26,26 @@ class VersionInfo:
         if str(self.version) in self.aliases:
             raise ValueError('duplicated version and alias')
 
+    
     @classmethod
     def from_json(cls, data):
-        return cls(data['version'], data['title'], data['aliases'],
-                   data.get('properties'))
+        return cls(
+            data['version'],
+            data['title'],
+            data['aliases'],
+            data.get('properties')
+        )
 
     def to_json(self):
-        data = {'version': str(self.version),
-                'title': self.title,
-                'aliases': list(self.aliases)}
+        data = {
+            'version': str(self.version),
+            'title': self.title,
+            'aliases': list(self.aliases)
+        }
         if self.properties:
             data['properties'] = self.properties
         return data
+
 
     @classmethod
     def loads(cls, data):
@@ -87,16 +95,21 @@ class VersionInfo:
 
 class Versions:
     def __init__(self):
-        self._data = {}
+        self._data = {}  # Structure: { "component1": { "1.0": VersionInfo, "dev": VersionInfo }, ... }
 
     @classmethod
     def from_json(cls, data):
         result = cls()
-        for i in data:
-            version = VersionInfo.from_json(i)
-            version_str = str(version.version)
-            result._ensure_unique_aliases(version_str, version.aliases)
-            result._data[version_str] = version
+        for component, versions in data.items():
+            if component not in result._data:
+                result._data[component] = {}
+
+            for version_data in versions:
+                version = VersionInfo.from_json(version_data)
+                version_str = str(version.version)
+                result._ensure_unique_aliases(component, version_str, version.aliases)
+                result._data[component][version_str] = version
+                
         return result
 
     def to_json(self):
@@ -135,61 +148,70 @@ class Versions:
             raise KeyError(identifier)
         return None
 
-    def _ensure_unique_aliases(self, version, aliases, update_aliases=False):
+    def _ensure_unique_aliases(self, component, version, aliases, update_aliases=False):
         removed_aliases = []
 
-        # Check whether `version` is already defined as an alias.
-        key = self.find(version)
+        # Ensure the component exists in _data
+        if component not in self._data:
+            self._data[component] = {}
+
+        # Check if `version` is already defined as an alias within the component
+        key = self.find(component, version)
         if key and len(key) == 2:
             if not update_aliases:
-                raise ValueError('version {!r} already exists'.format(version))
+                raise ValueError(f"Version '{version}' already exists in component '{component}'")
             removed_aliases.append(key)
 
-        # Check whether any `aliases` are already defined.
-        for i in aliases:
-            key = self.find(i)
+        # Check if any `aliases` are already in use within the same component
+        for alias in aliases:
+            key = self.find(component, alias)
             if key and key[0] != version:
                 if len(key) == 1:
-                    raise ValueError(
-                        'alias {!r} already specified as a version'.format(i)
-                    )
+                    raise ValueError(f"Alias '{alias}' is already specified as a version in component '{component}'")
                 if not update_aliases:
-                    raise ValueError(
-                        'alias {!r} already exists for version {!r}'
-                        .format(i, str(key[0]))
-                    )
+                    raise ValueError(f"Alias '{alias}' already exists for version '{key[0]}' in component '{component}'")
                 removed_aliases.append(key)
 
         return removed_aliases
 
-    def add(self, version, title=None, aliases=[], update_aliases=False):
+
+    def add(self, component, version, title=None, aliases=[], update_aliases=False):
         v = str(version)
-        removed_aliases = self._ensure_unique_aliases(
-            v, aliases, update_aliases
-        )
 
-        if v in self._data:
-            self._data[v].update(title, aliases)
+        # Ensure the component exists
+        if component not in self._data:
+            self._data[component] = {}
+
+        # Ensure alias uniqueness within the given component
+        removed_aliases = self._ensure_unique_aliases(component, v, aliases, update_aliases)
+
+        # If the version already exists, update its title and aliases
+        if v in self._data[component]:
+            self._data[component][v].update(title, aliases)
         else:
-            self._data[v] = VersionInfo(version, title, aliases)
+            self._data[component][v] = VersionInfo(version, title, aliases)
 
-        # Remove aliases from old versions that we've moved to this version.
+        # Remove aliases from old versions within the same component
         for i in removed_aliases:
-            self._data[i[0]].aliases.remove(i[1])
+            self._data[component][i[0]].aliases.remove(i[1])
 
-        return self._data[v]
+        return self._data[component][v]
 
-    def update(self, identifier, title=None, aliases=[], update_aliases=False):
-        key = self.find(identifier, strict=True)
-        removed_aliases = self._ensure_unique_aliases(
-            key[0], aliases, update_aliases
-        )
 
-        # Remove aliases from old versions that we've moved to this version.
+    def update(self, component, identifier, title=None, aliases=[], update_aliases=False):
+        key = self.find(component, identifier, strict=True)
+
+        if not key:
+            raise ValueError(f"Version '{identifier}' not found in component '{component}'")
+
+        removed_aliases = self._ensure_unique_aliases(component, key[0], aliases, update_aliases)
+
+        # Remove aliases from old versions within the same component
         for i in removed_aliases:
-            self._data[i[0]].aliases.remove(i[1])
+            self._data[component][i[0]].aliases.remove(i[1])
 
-        return self._data[key[0]].update(title, aliases)
+        return self._data[component][key[0]].update(title, aliases)
+
 
     def _remove_by_key(self, key):
         if len(key) == 1:
@@ -200,10 +222,21 @@ class Versions:
             self._data[key[0]].aliases.remove(key[1])
         return item
 
-    def remove(self, identifier):
-        key = self.find(identifier, strict=True)
-        return self._remove_by_key(key)
+    def remove(self, component, identifier):
+        key = self.find(component, identifier, strict=True)
 
-    def difference_update(self, identifiers):
-        keys = [self.find(i, strict=True) for i in identifiers]
-        return [self._remove_by_key(i) for i in keys]
+        if not key:
+            raise ValueError(f"Version '{identifier}' not found in component '{component}'")
+
+        return self._remove_by_key(component, key)
+
+
+    def difference_update(self, component, identifiers):
+        keys = [self.find(component, i, strict=True) for i in identifiers]
+
+        if any(k is None for k in keys):
+            missing_versions = [i for i, k in zip(identifiers, keys) if k is None]
+            raise ValueError(f"Versions {missing_versions} not found in component '{component}'")
+
+        return [self._remove_by_key(component, k) for k in keys]
+

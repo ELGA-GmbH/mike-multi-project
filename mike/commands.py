@@ -58,9 +58,9 @@ def versions_to_file_info(versions, deploy_prefix=''):
 def make_nojekyll():
     return git_utils.FileInfo('.nojekyll', '')
 
-
+# added component parameter - this has to be available when deploy method is called.
 @contextmanager
-def deploy(cfg, version, title=None, aliases=[], update_aliases=False,
+def deploy(cfg, version, component, title=None, aliases=[], update_aliases=False,
            alias_type=AliasType.symlink, template=None, *, branch='gh-pages',
            message=None, allow_empty=False, deploy_prefix='', set_props=[]):
     if message is None:
@@ -76,7 +76,7 @@ def deploy(cfg, version, title=None, aliases=[], update_aliases=False,
         )
 
     all_versions = list_versions(branch, deploy_prefix)
-    info = all_versions.add(version, title, aliases, update_aliases)
+    info = all_versions.add(component, version, title, aliases, update_aliases)
     version_str = str(info.version)
     destdir = os.path.join(deploy_prefix, version_str)
     alias_destdirs = [os.path.join(deploy_prefix, i) for i in info.aliases]

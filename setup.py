@@ -60,7 +60,7 @@ setup(
     long_description=long_desc,
     long_description_content_type='text/markdown',
     keywords='mkdocs multiple versions',
-    url='https://github.com/jimporter/mike',
+    url='https://github.com/ELGA-GmbH/mike-multi-project',
 
     author='Jim Porter',
     author_email='itsjimporter@gmail.com',
