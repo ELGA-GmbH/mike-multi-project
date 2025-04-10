@@ -196,7 +196,7 @@ def deploy(parser, args):
     check_remote_status(args, strict=True)
     with handle_empty_commit():
         alias_type = commands.AliasType[args.alias_type]
-        with commands.deploy(cfg, args.version, args.title, args.aliases,
+        with commands.deploy(cfg, args.component, args.version, args.title, args.aliases,
                              args.update_aliases, alias_type, args.template,
                              branch=args.branch, message=args.message,
                              allow_empty=args.allow_empty,
@@ -208,14 +208,17 @@ def deploy(parser, args):
             git_utils.push_branch(args.remote, args.branch)
 
 
+
 def delete(parser, args):
     load_mkdocs_config(args)
     check_remote_status(args, strict=True)
-    commands.delete(args.identifiers, args.all, branch=args.branch,
-                    message=args.message, allow_empty=args.allow_empty,
+    commands.delete(args.component, args.identifiers, args.all,
+                    branch=args.branch, message=args.message,
+                    allow_empty=args.allow_empty,
                     deploy_prefix=args.deploy_prefix)
     if args.push:
         git_utils.push_branch(args.remote, args.branch)
+
 
 
 def alias(parser, args):
@@ -366,6 +369,9 @@ def main():
                           help='version to deploy this build to')
     deploy_p.add_argument('aliases', nargs='*', metavar='ALIAS',
                           help='additional alias for this build')
+    deploy_p.add_argument('--component', required=True,
+                      help='component name to associate this version with')
+
 
     delete_p = subparsers.add_parser(
         'delete', description=delete_desc, help='delete docs from a branch'
@@ -376,6 +382,9 @@ def main():
     add_git_arguments(delete_p)
     delete_p.add_argument('identifiers', nargs='*', metavar='IDENTIFIER',
                           help='version or alias to delete')
+    delete_p.add_argument('--component', required=True,
+                      help='component name to delete versions from')
+
 
     alias_p = subparsers.add_parser(
         'alias', description=alias_desc, help='alias docs on a branch'
