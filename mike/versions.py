@@ -151,10 +151,6 @@ class Versions:
     def _ensure_unique_aliases(self, component, version, aliases, update_aliases=False):
         removed_aliases = []
 
-        # Ensure the component exists in _data
-        if component not in self._data:
-            self._data[component] = {}
-
         # Check if `version` is already defined as an alias within the component
         key = self.find(component, version)
         if key and len(key) == 2:
@@ -184,6 +180,9 @@ class Versions:
 
         # Ensure alias uniqueness within the given component
         removed_aliases = self._ensure_unique_aliases(component, v, aliases, update_aliases)
+
+        print(f"Component '{component}' versions: {self._data[component]}")
+        print(f"Checking if version '{v}' exists in the component...")
 
         # If the version already exists, update its title and aliases
         if v in self._data[component]:

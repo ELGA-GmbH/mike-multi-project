@@ -76,7 +76,10 @@ def deploy(cfg, component, version, title=None, aliases=[], update_aliases=False
         )
 
     all_versions = list_versions(branch, deploy_prefix) # returns Versions object
+    print(f"Loaded versions: {all_versions._data}")
     info = all_versions.add(component, version, title, aliases, update_aliases)
+    print(f"info variable is of type: {type(info)}")
+    print(f"Added/updated version info: {info.version}, title: {info.title}, aliases: {info.aliases}")
     version_str = str(info.version)
     destdir = os.path.join(deploy_prefix, version_str)
     alias_destdirs = [os.path.join(deploy_prefix, i) for i in info.aliases]
